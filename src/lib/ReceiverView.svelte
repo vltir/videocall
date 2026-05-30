@@ -40,6 +40,6 @@
   {/if}
 
   <button class="share-button" type="button" on:click={onShare}>
-    I want to share
+    I want to call
   </button>
 </div>

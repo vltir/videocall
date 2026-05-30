@@ -1,6 +1,6 @@
 <script>
-  /** @type {{ stream: MediaStream | null }} */
-  let { stream } = $props()
+  /** @type {{ stream: MediaStream | null, muted?: boolean }} */
+  let { stream, muted = false } = $props()
   /** @type {HTMLVideoElement | null} */
   let videoEl = null
 
@@ -20,5 +20,5 @@
   bind:this={videoEl}
   autoplay
   playsinline
-  muted
+  muted={muted}
 ></video>

@@ -212,9 +212,9 @@
 
 <div class="sender">
   <div class="sender-header">
-    <h1>Share your screen</h1>
+    <h1>Share your camera and microphone</h1>
     {#if mode === 'sender-auto'}
-      <p>Starting screen share from the QR link…</p>
+      <p>Starting camera and microphone from the QR link…</p>
     {:else}
       <p>Enter the {wordCount} words or scan the TV QR code.</p>
     {/if}
@@ -235,7 +235,7 @@
   />
 
   <div class="button-row">
-    <button class="primary" type="button" on:click={startSharing}>Start sharing</button>
+    <button class="primary" type="button" on:click={startSharing}>Start call</button>
     <button class="secondary" type="button" on:click={startScanner} disabled={scannerActive}>
       {scannerActive ? 'Scanner running…' : 'Scan QR'}
     </button>

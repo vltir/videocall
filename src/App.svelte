@@ -152,11 +152,11 @@
     }
     roomSecret = normalized
     roomParam = toParamSecret(normalized)
-    status = 'Requesting screen share…'
+    status = 'Requesting camera and microphone…'
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({
+      const stream = await navigator.mediaDevices.getUserMedia({
         video: true,
-        audio: false,
+        audio: true,
       })
       localStream = stream
       role = 'connected'
@@ -169,18 +169,18 @@
         }
       }
       room.addStream(stream)
-      status = 'Sharing screen…'
+      status = 'Streaming camera and microphone…'
       const [track] = stream.getVideoTracks()
       if (track) {
         track.addEventListener('ended', () => {
-          status = 'Screen sharing stopped.'
+          status = 'Camera or microphone stopped.'
           role = 'sender-manual'
           resetStreams()
         })
       }
     } catch (err) {
       if (isNotAllowedError(err)) {
-        error = 'Screen sharing was blocked. Please allow it in the dialog.'
+        error = 'Camera or microphone access was blocked. Please allow it in the dialog.'
       } else {
         error = getErrorMessage(err)
       }
@@ -227,7 +227,7 @@
 </script>
 
 {#if remoteStream || localStream}
-  <VideoPlayer stream={remoteStream || localStream} />
+  <VideoPlayer stream={remoteStream || localStream} muted={!remoteStream} />
 {:else if role === 'receiver'}
   <ReceiverView
     qrCodeUrl={qrCodeUrl}
