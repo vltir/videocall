@@ -195,6 +195,35 @@ button:disabled {
   background: #000;
 }
 
+.call-overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.call-overlay-content {
+  display: grid;
+  gap: 12px;
+  padding: 24px 28px;
+  border-radius: 16px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  text-align: center;
+  max-width: min(90vw, 360px);
+}
+
+.call-title {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.call-subtitle {
+  color: var(--muted);
+  font-size: 14px;
+}
+
 .autocomplete {
   background: var(--panel);
   border: 1px solid var(--border);

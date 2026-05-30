@@ -23,6 +23,7 @@
   let localStream = null
   /** @type {MediaStream | null} */
   let remoteStream = null
+  let needsAccept = false
   /** @type {ReturnType<typeof joinRoom> | null} */
   let room = null
 
@@ -85,6 +86,7 @@
     stopStream(localStream)
     localStream = null
     remoteStream = null
+    needsAccept = false
   }
 
   /** @param {string} roomId */
@@ -119,6 +121,7 @@
     resetStreams()
     error = ''
     status = 'Waiting for a sender…'
+    needsAccept = false
     roomSecret = normalizeSecret(secret)
     roomParam = toParamSecret(roomSecret)
     shareUrl = buildShareUrl(roomParam)
@@ -159,11 +162,13 @@
     }
     room.onPeerStream = /** @param {MediaStream} stream */ (stream) => {
       remoteStream = stream
+      needsAccept = true
       role = 'connected'
       const [track] = stream.getVideoTracks()
       if (track) {
         track.addEventListener('ended', () => {
           remoteStream = null
+          needsAccept = false
           stopStream(localStream)
           localStream = null
           role = 'receiver'
@@ -178,6 +183,7 @@
     cleanupRoom()
     resetStreams()
     error = ''
+    needsAccept = false
     const normalized = normalizeSecret(secret)
     if (!isValidSecret(normalized)) {
       error = `Please enter ${wordCount} valid words.`
@@ -204,6 +210,7 @@
       }
       room.onPeerStream = /** @param {MediaStream} stream */ (stream) => {
         remoteStream = stream
+        needsAccept = false
         const [track] = stream.getVideoTracks()
         if (track) {
           track.addEventListener('ended', () => {
@@ -232,6 +239,7 @@
   }
 
   const handleShareClick = () => {
+    needsAccept = false
     role = 'sender-manual'
     error = ''
     status = ''
@@ -239,14 +247,20 @@
 
   /** @param {string} secret */
   const handleManualStart = (secret) => {
+    needsAccept = false
     role = 'sender-manual'
     startSenderFlow(secret)
   }
 
   /** @param {string} secret */
   const handleScan = (secret) => {
+    needsAccept = false
     role = 'sender-manual'
     startSenderFlow(secret)
+  }
+
+  const acceptCall = () => {
+    needsAccept = false
   }
 
   onMount(() => {
@@ -270,7 +284,16 @@
 </script>
 
 {#if role === 'connected' && (remoteStream || localStream)}
-  <VideoPlayer stream={remoteStream || localStream} muted={!remoteStream} />
+  <VideoPlayer stream={remoteStream || localStream} muted={!remoteStream || needsAccept} />
+  {#if remoteStream && needsAccept}
+    <div class="call-overlay" role="dialog" aria-live="polite">
+      <div class="call-overlay-content">
+        <div class="call-title">Incoming call</div>
+        <div class="call-subtitle">Click accept to enable audio.</div>
+        <button class="primary" type="button" on:click={acceptCall}>Accept call</button>
+      </div>
+    </div>
+  {/if}
 {:else if role === 'receiver'}
   <ReceiverView
     qrCodeUrl={qrCodeUrl}
