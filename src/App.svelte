@@ -125,6 +125,38 @@
     qrCodeUrl = await QRCode.toDataURL(shareUrl, { margin: 1, width: 480 })
     const roomHash = await hashSecret(roomSecret)
     room = joinRoomWithTimeout(roomHash)
+    room.onPeerJoin = async (peerId) => {
+      if (localStream) {
+        room.addStream(localStream, { target: peerId })
+        return
+      }
+      status = 'Requesting camera and microphone…'
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true,
+        })
+        localStream = stream
+        room.addStream(stream, { target: peerId })
+        room.addStream(stream)
+        const [track] = stream.getVideoTracks()
+        if (track) {
+          track.addEventListener('ended', () => {
+            status = 'Camera or microphone stopped.'
+            stopStream(stream)
+            if (localStream === stream) {
+              localStream = null
+            }
+          })
+        }
+      } catch (err) {
+        if (isNotAllowedError(err)) {
+          status = 'Camera or microphone access was blocked. Please allow it in the dialog.'
+        } else {
+          status = getErrorMessage(err)
+        }
+      }
+    }
     room.onPeerStream = /** @param {MediaStream} stream */ (stream) => {
       remoteStream = stream
       role = 'connected'
@@ -132,6 +164,8 @@
       if (track) {
         track.addEventListener('ended', () => {
           remoteStream = null
+          stopStream(localStream)
+          localStream = null
           role = 'receiver'
           status = 'Waiting for a sender…'
         })
@@ -166,6 +200,15 @@
       room.onPeerJoin = /** @param {string} peerId */ (peerId) => {
         if (localStream) {
           room.addStream(localStream, { target: peerId })
+        }
+      }
+      room.onPeerStream = /** @param {MediaStream} stream */ (stream) => {
+        remoteStream = stream
+        const [track] = stream.getVideoTracks()
+        if (track) {
+          track.addEventListener('ended', () => {
+            remoteStream = null
+          })
         }
       }
       room.addStream(stream)
@@ -226,7 +269,7 @@
   })
 </script>
 
-{#if remoteStream || localStream}
+{#if role === 'connected' && (remoteStream || localStream)}
   <VideoPlayer stream={remoteStream || localStream} muted={!remoteStream} />
 {:else if role === 'receiver'}
   <ReceiverView
