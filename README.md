@@ -1,43 +1,91 @@
-# Svelte + Vite
+# Videocall
 
-This template should help get you started developing with Svelte in Vite.
+Eine dezentrale, serverlose Peer-to-Peer (P2P) WebRTC-Anwendung für Video- und Audioübertragungen. Die Anwendung nutzt das Nostr-Netzwerk via Trystero für ein vollkommen serverloses Signaling und sichert Räume über kryptografische BIP39-Wortkombinationen ab.
 
-## Recommended IDE Setup
+## Features & Funktionalität
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode).
+Die Anwendung unterscheidet zwischen zwei Rollen, die vollautomatisch ausgehandelt werden:
 
-## Need an official Svelte framework?
+1. **Receiver (Empfänger):**
+   * Beim Öffnen der Basis-Anwendung wird ein neuer Raum generiert.
+   * Es werden 4 zufällige Pairing-Wörter aus der BIP39-Englisch-Wortliste erzeugt.
+   * Die Anwendung erstellt einen direkten Einladungslink sowie einen QR-Code zur schnellen Kopplung.
+   * Sobald sich ein Sender verbindet, öffnet sich ein Overlay zur Bestätigung des Anrufs.
 
-Check out [SvelteKit](https://github.com/sveltejs/kit#readme), which is also powered by Vite. Deploy anywhere with its serverless-first approach and adapt to various platforms, with out of the box support for TypeScript, SCSS, and Less, and easily-added support for mdsvex, GraphQL, PostCSS, Tailwind CSS, and more.
+2. **Sender (Übertragender):**
+   * Kann dem Raum beitreten.
+   * Bietet drei Koppelungsmethoden:
+     * **Direkt-URL:** Aufruf des generierten Einladungslinks (`?room=...`) per manueller Eingabe oder durch Scannen des QR-Codes mit der Smartphone-eigenen Kamera-App und anschließender Öffnung des im QR-Code hinterlegten Links. 
+     * **Manuelle Eingabe:** Klicken auf "I want to call" und Eingabe der 4 Pairing-Wörter mit unterstützter Autovervollständigung der BIP39-Wortliste.
+     * **QR-Code-Scanner:** Direktes Scannen des Receiver-Bildschirms über den integrierten QR-Code-Scanner.
 
-## Technical considerations
+---
 
-**Why use this over SvelteKit?**
+## Voraussetzungen (Requirements)
 
-- It brings its own routing solution which might not be preferable for some users.
-- It is first and foremost a framework that just happens to use Vite under the hood, not a Vite app.
+Um die Anwendung lokal auszuführen und die Test-Suiten zu starten, werden folgende Komponenten benötigt:
 
-This template contains as little as possible to get started with Vite + Svelte, while taking into account the developer experience with regards to HMR and intellisense. It demonstrates capabilities on par with the other `create-vite` templates and is a good starting point for beginners dipping their toes into a Vite + Svelte project.
+* **Node.js**: Version 20 oder höher empfohlen.
+* **NPM**: Paketmanager (wird standardmäßig mit Node.js ausgeliefert).
+* **Moderne Webbrowser**: Chrome, Chromium, Firefox oder Safari mit vollständiger WebRTC- und Medien-Unterstützung (Kamera/Mikrofon).
+* **Playwright-Browser**: Speziell Chromium für die automatisierten E2E-Tests.
 
-Should you later need the extended capabilities and extensibility provided by SvelteKit, the template has been structured similarly to SvelteKit so that it is easy to migrate.
+## Lokale Ausführung
 
-**Why include `.vscode/extensions.json`?**
-
-Other templates indirectly recommend extensions via the README, but this file allows VS Code to prompt the user to install the recommended extension upon opening the project.
-
-**Why enable `checkJs` in the JS template?**
-
-It is likely that most cases of changing variable types in runtime are likely to be accidental, rather than deliberate. This provides advanced typechecking out of the box. Should you like to take advantage of the dynamically-typed nature of JavaScript, it is trivial to change the configuration.
-
-**Why is HMR not preserving my local component state?**
-
-HMR state preservation comes with a number of gotchas! It has been disabled by default in both `svelte-hmr` and `@sveltejs/vite-plugin-svelte` due to its often surprising behavior. You can read the details [here](https://github.com/sveltejs/svelte-hmr/tree/master/packages/svelte-hmr#preservation-of-local-state).
-
-If you have state that's important to retain within a component, consider creating an external store which would not be replaced by HMR.
-
-```js
-// store.js
-// An extremely simple external store
-import { writable } from 'svelte/store'
-export default writable(0)
+1. **Abhängigkeiten installieren**:
+```bash
+npm install
 ```
+
+2. **Entwicklungsserver starten**:
+```bash
+npm run dev
+```
+Die Anwendung ist anschließend standardmäßig unter `http://localhost:5173/videocall/` erreichbar.
+
+## Production Build
+
+1. **Abhängigkeiten installieren**:
+```bash
+npm install
+```
+
+2. **Produktions-Build erstellen**:
+```bash
+npm run build
+npm run preview
+```
+Die Anwendung ist anschließend standardmäßig unter `http://localhost:5173/videocall/` erreichbar.
+
+## Tests ausführen
+
+Das Projekt verwendet **Playwright** für umfassende Ende-zu-Ende-Tests (E2E). Die Test-Suite deckt sowohl den reinen Signaling-Verbindungsaufbau über alle drei Koppelungswege ab als auch die mathematische Integritätsprüfung der echten Video- und Audioübertragung.
+
+
+1. **Abhängigkeiten installieren**:
+```bash
+npm install
+```
+
+2. **Playwright-Browser installieren**:
+```bash
+npx playwright install chromium
+```
+
+3**Tests im Headless-Modus ausführen**:
+
+```bash
+npx playwright test
+
+```
+
+### Test-Struktur
+
+* `tests/helpers.js`: Geteilte Setup-Logik zur Initialisierung des Receivers und Klick-Automatisierung.
+* `tests/connection-manual.spec.js`: Testet die manuelle Eingabe der BIP39-Wörter.
+* `tests/connection-url.spec.js`: Testet den automatischen Handshake beim Direktaufruf via Query-Parameter.
+* `tests/connection-scan.spec.js`: Testet den integrierten QR-Scanner mittels Kamera-Streams.
+* `tests/media-transmission.spec.js`: Injiziert einen synthetischen Medienstream und verifiziert mittels Frequenzanalyse und Pixel-Delta-Bewegungserkennung, ob Video und Audio Übertragungen stattfinden.
+
+### Alternative Verifizierung
+Alternativ kann die Applikation über das Deployment auf Github-Pages sowie die Testausführung mittels des Workflows verifiziert werden. 
