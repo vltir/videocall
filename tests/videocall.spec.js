@@ -42,22 +42,78 @@ test('Videocall WebRTC: Video and Audio Transmission', async ({ browser }) => {
 
   await expect(callOverlay).not.toBeVisible();
 
-  // ==========================================
-  // 4. Verify WebRTC Video-Transfer
-  // ==========================================
   const videoClient1 = page1.locator('video.video-fullscreen');
   await expect(videoClient1).toBeVisible();
 
-  const isVideoPlayingOnClient1 = await videoClient1.evaluate((video) => {
-    return video.readyState >= 2 && !video.paused && video.currentTime > 0;
-  });
-
   await page1.waitForTimeout(2000);
 
-  const currentTimeClient1 = await videoClient1.evaluate((video) => video.currentTime);
-  console.log(`Video being transmitted. Current playing time: ${currentTimeClient1}s`);
+  // ==========================================
+  // 4. Verify video transfer
+  // ==========================================
+  console.log('Verifying video transfer on changing pictures');
+  const isVideoMoving = await page1.evaluate(async () => {
+    const video = document.querySelector('video.video-fullscreen');
+    if (!video || video.readyState < 2) return false;
 
-  expect(currentTimeClient1).toBeGreaterThan(0);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 64;
+    canvas.height = 64;
+    const captureFrame = () => {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      return ctx.getImageData(0, 0, canvas.width, canvas.height).data.join(',');
+    };
+
+    const frame1 = captureFrame();
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const frame2 = captureFrame();
+
+    return frame1 !== frame2;
+  });
+
+  console.log(`Changing pictures: ${isVideoMoving}`);
+  expect(isVideoMoving).toBe(true);
+
+  // ==========================================
+  // 5. Verify audio transfer
+  // ==========================================
+  console.log('Verifying audio transfer on frequencies');
+  const isAudioTransmitting = await page1.evaluate(async () => {
+    const video = document.querySelector('video.video-fullscreen');
+    if (!video || !video.srcObject) return false;
+
+    const stream = video.srcObject;
+    if (stream.getAudioTracks().length === 0) return false;
+
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const audioCtx = new AudioContext();
+
+    const source = audioCtx.createMediaStreamSource(stream);
+    const analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    source.connect(analyser);
+
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+
+    let maxVolumeDetected = 0;
+
+    for (let i = 0; i < 10; i++) {
+      analyser.getByteFrequencyData(dataArray);
+      const currentMax = Math.max(...dataArray);
+      if (currentMax > maxVolumeDetected) {
+        maxVolumeDetected = currentMax;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    await audioCtx.close();
+
+    return maxVolumeDetected > 10;
+  });
+
+  console.log(`frequency match: ${isAudioTransmitting}`);
+  expect(isAudioTransmitting).toBe(true);
 
   await context1.close();
   await context2.close();
